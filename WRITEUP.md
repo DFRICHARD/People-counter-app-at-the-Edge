@@ -1,59 +1,101 @@
 # Project Write-Up
 
-You can use this document as a template for providing your project write-up. However, if you
-have a different format you prefer, feel free to use it as long as you answer all required
-questions.
+**_Theme_** : People counter App optimized using the [Intel OpenVino Toolkit](https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit.html) for running at the edge.
+
+**_Author_**: DZE RICHARD
+
 
 ## Explaining Custom Layers
 
-The process behind converting custom layers involves...
+### AI and the emergence of custom layers
+It is arguably impossibility talking of the reasons behind th rise of astonishing AI applications emerging across the world without mentioning to the awesome researches in the field of Deep learning.
 
-Some of the potential reasons for handling custom layers are...
+Deep learning is based on Artificial Neural Networks which are computing systems consisting of a combination of layers. Hence building deep learning models that would accomplish a given task could involve including one or more custom layer to carryout specific operation(s).
+
+### Handling custom layers
+When converting a model into an Intermediate representation(IR) or loading the IR through the infernce engine, if the topology contains an unsupported layer, that layer is to be treated like a custom layer.  
+When implementing a custom layer for your pre-trained model in the Intel® Distribution of OpenVINO™ toolkit, you will need to add extensions to both the Model Optimizer and the Inference Engine.
+#### For the model optimizer:
+The custom layer extensions needed by the Model Optimizer are:
+
+* Custom Layer Extractor
+     > Responsible for identifying the custom layer operation and extracting the parameters for each instance of the custom layer. The layer parameters
+     > are stored per instance and used by the layer operation before finally appearing in the output IR. Typically the input layer parameters are unchanged,⋅
+     > which is the case covered by this tutorial.
+
+* Custom Layer Operation
+     > Responsible for specifying the attributes that are supported by the custom layer and computing the output shape for each instance of the custom layer from its parameters. 
+     > The --mo-op command-line argument shown in the examples below generates a custom layer operation for the Model Optimizer.
+
+![Model Optimizer extension](./images/MO_extensions_flow.png)
+
+#### For the Inference engine:
+The following figure shows the basic flow for the Inference Engine highlighting two custom layer extensions for the CPU and GPU Plugins, the Custom Layer CPU extension and the Custom Layer GPU Extension.
+Each device plugin includes a library of optimized implementations to execute known layer operations which must be extended to execute a custom layer. The custom layer extension is implemented according to the target device:
+
+* Custom Layer CPU Extension
+     >A compiled shared library (.so or .dll binary) needed by the CPU Plugin for executing the custom layer on the CPU.
+* Custom Layer GPU Extension
+     >OpenCL source code (.cl) for the custom layer kernel that will be compiled to execute on the GPU along with a layer description file (.xml) needed by the GPU Plugin for the custom layer kernel.
+
+![Inference Engine extension](./images/IE_extensions_flow.png)
+
+
 
 ## Comparing Model Performance
 
-My method(s) to compare models before and after conversion to Intermediate Representations
-were...
+I made greater emphasis on the inference time and model size before and after convertion into Intermediate representation(IR).
 
-The difference between model accuracy pre- and post-conversion was...
+### Model Size: ###
 
-The size of the model pre- and post-conversion was...
+|                       | **SSD MobileNet V1 Coco** | **SSD MobileNet V2 Coco** | **SSD Inception V2** |
+| :-------------------: |   :-------------------:   |   :-------------------:   |   :--------------:   |
+| Pre-conversion        |          28 MB            |         67 MB       	     |          98 MB       |
+|  post conversion      |          26 MB            |         65 MB             |          96 MB       |
 
-The inference time of the model pre- and post-conversion was...
+### Inference time ###
+After converting the models into IR and performing inference on the video stream, average inference time for each were as follows:
+
+| **SSD MobileNet V1 Coco** | **SSD MobileNet V2 Coco** | **SSD Inception V2** |
+|   :-------------------:   |   :-------------------:   |   :--------------:   |
+|          50ms             |         70 ms       	 |        158 ms        |
 
 ## Assess Model Use Cases
 
-Some of the potential use cases of the people counter app are...
+1. **Queue Management**:
 
-Each of these use cases would be useful because...
+  * It could be used to determine the number of people who could queue up in front of a sales points and evaluate if there may be a need to add the sales points for faster service to customers.
+
+2. **Security system** :
+
+  * It could be used to detect people in an unauthorized zone and alert.
+
+3. **Customer behavior**:
+
+  * It could be used to calculate the conversion rate by calculating how long customer is looking at a product and if he/she end up buying it.
 
 ## Assess Effects on End User Needs
 
 Lighting, model accuracy, and camera focal length/image size have different effects on a
-deployed edge model. The potential effects of each of these are as follows...
+deployed edge model. The potential effects of each of these are as follows:
+
+* Lighting
+   Poor lighting conditions could go a long way in reducing the model accuracy. It could be a good practice the case of surveillance cameras to close light sources for operation in dark conditions. Also augmenting the dataset with images taken under dark conditions could and help the model perform better in dark conditions.  
+
+
+* Image size/Focal length
+    Under certain focal lengths, properties of the object could be missed and the model would not be able to properly detect the object. Image size hinders the model accuracy as if it differs from the original size which the model hence affecting the confusion matrix.
 
 ## Model Research
 
-[This heading is only required if a suitable model was not found after trying out at least three
-different models. However, you may also use this heading to detail how you converted 
-a successful model.]
-
 In investigating potential people counter models, I tried each of the following three models:
 
-- Model 1: [Name]
-  - [Model Source]
-  - I converted the model to an Intermediate Representation with the following arguments...
-  - The model was insufficient for the app because...
-  - I tried to improve the model for the app by...
+- Model 1: **SSD MobileNet V1 Coco**
+  - Model source: [Here](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v1_coco_2018_01_28.tar.gz)
   
-- Model 2: [Name]
-  - [Model Source]
-  - I converted the model to an Intermediate Representation with the following arguments...
-  - The model was insufficient for the app because...
-  - I tried to improve the model for the app by...
+- Model 2: **SSD MobileNet V2 Coco**
+  - Model source: [Here](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz)
 
-- Model 3: [Name]
-  - [Model Source]
-  - I converted the model to an Intermediate Representation with the following arguments...
-  - The model was insufficient for the app because...
-  - I tried to improve the model for the app by...
+
+- Model 3: **SSD Inception V2**
+  - Model Source: [Here](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz)
