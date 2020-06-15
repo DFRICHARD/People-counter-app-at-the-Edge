@@ -44,7 +44,7 @@ Each device plugin includes a library of optimized implementations to execute kn
 
 ## Comparing Model Performance
 
-I made greater emphasis on the inference time and model size before and after convertion into Intermediate representation(IR).
+I made greater emphasis on the inference time and model size before and after conversion into Intermediate representation(IR).
 
 ### Model Size: ###
 
@@ -106,10 +106,20 @@ To convert the model into IR , I proceeded as follows:
     e.g ```wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz```
 
 2. untar the model tar.gz file
-    e.g ```tar -xzvf ssd_mobilenet_v2_coco_2018_03_29.tar.gz ```
+    e.g ```tar -xzvf ssd_mobilenet_v2_coco_2018_03_29.tar.gz```
 
 3. cd to the untarred directory
     e.g ```cd ssd_mobilenet_v2_coco_2018_03_29```
 
 4. Once in diretory converted the frozen models into IR using the model Optimizer
     e.g ```python /opt/intel/openvino/deployment_tools/model_optimizer/mo.py --input_model frozen_inference_graph.pb --tensorflow_object_detection_api_pipeline_config pipeline.config --reverse_input_channels --tensorflow_use_custom_operations_config /opt/intel/openvino/deployment_tools/model_optimizer/extensions/front/tf/faster_rcnn_support.json```
+
+## Additional notes
+
+From experimenting with these models, it's rather without doubt that making use of the openvino toolkit helps a lot in optimizing the models for deployment on edge devices.
+However this hinders the model's accuracy ,though I believe it could be tolerated in a lot of scenarios due some importance such as;
+- Saving the user from sending sensitive data to the cloud as inference could be performed offline on the edge device.
+- Helping to avoid spending much on network communication.
+Some tradeoffs encountered were:
+- The models usually takes much time to detect and did not keep the bounding box: To try tackling that, I set a confidence threshold as low as 0.5
+- Since the models did not keep a bounding box for long, the same person in the same could be counted severally, hence tricking the stats:  To try tackling this, I set time thresholds before a detection could be added to total counts.
