@@ -120,6 +120,6 @@ From experimenting with these models, it's rather without doubt that making use 
 However this hinders the model's accuracy ,though I believe it could be tolerated in a lot of scenarios due some importance such as;
 - Saving the user from sending sensitive data to the cloud as inference could be performed offline on the edge device.
 - Helping to avoid spending much on network communication.
-Some tradeoffs encountered were:
+#### Some tradeoffs encountered were:
 - The models usually takes much time to detect and did not keep the bounding box: To try tackling that, I set a confidence threshold as low as 0.5
 - Since the models did not keep a bounding box for long, the same person in the same could be counted severally, hence tricking the stats:  To try tackling this, I set time thresholds before a detection could be added to total counts.
