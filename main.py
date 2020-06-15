@@ -19,6 +19,8 @@
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
+
+# MQTT server environment variables
 import os
 import sys
 import time
@@ -29,8 +31,6 @@ import logging as log
 import paho.mqtt.client as mqtt
 from argparse import ArgumentParser
 from inference import Network
-
-# MQTT server environment variables
 HOSTNAME = socket.gethostname()
 IPADDRESS = socket.gethostbyname(HOSTNAME)
 MQTT_HOST = IPADDRESS
@@ -74,7 +74,7 @@ def draw_boxes(frame, result):
 
     '''
 
-    current_count = 0
+    detected = 0
     for obj in result[0][0]:
         if obj[2] > prob_threshold:
             xmin = int(obj[3] * width)
@@ -82,11 +82,11 @@ def draw_boxes(frame, result):
             xmax = int(obj[5] * width)
             ymax = int(obj[6] * height)
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (174, 32, 141), 2)
-            current_count += 1
+            detected += 1
 
     # Return original frame with box on it and
     # the number of object (people) on the current frame
-    return frame, current_count
+    return frame, detected
 
 
 def connect_mqtt():
@@ -109,9 +109,13 @@ def infer_on_stream(args, client):
     input_type = args.input
     single_image_mode = False
     request_id = 0
-
+    time_count = 0
+    pre_time = 0
+    counter = 0
     last_count = 0
+    current_count = 0
     total_count = 0
+    duration = 0
     # Initialise the class
     infer_network = Network()
     # Set Probability threshold for detections
@@ -120,7 +124,7 @@ def infer_on_stream(args, client):
 
     ### Load the model through `infer_network` ###
     n, c, h, w = infer_network.load_model(
-        args.model, args.device, args.cpu_extension)[1]
+        args.model, request_id, args.device, args.cpu_extension)[1]
 
     ### Handle the input stream ###
     if input_type == 'CAM':
@@ -177,33 +181,34 @@ def infer_on_stream(args, client):
                         (20, 20), font, 0.6, color, 1)
 
             ### Extract any desired stats from the results ###
-            frame, current_count = draw_boxes(frame, result)
+            frame, detected = draw_boxes(frame, result)
 
             ### Calculate and send relevant information on ###
             ### current_count, total_count and duration to the MQTT server ###
             ### Topic "person": keys of "count" and "total" ###
-            if current_count > last_count:
-                start_time = time.time()
-                total_count += current_count - last_count
-                client.publish("person", json.dumps(
-                    {"count": current_count, "total_counts": total_count}))
+            if detected != counter:
+                last_count = counter
+                counter = detected
+                if time_count >= 3:
+                    pre_time = time_count
+                    time_count = 0
+                else:
+                    time_count = pre_time + time_count
+                    pre_time = 0
+            else:
+                time_count += 1
+                if time_count >= 10:
+                    current_count = counter
+                    if time_count % 10 == 0 and current_count > last_count:
+                        total_count += current_count - last_count
+                    elif time_count % 10 == 0 and current_count < last_count:
+                        duration = int((pre_time / 10.0) * 1000)
 
-            ### Topic "person/duration": key of "duration" ###
-            if current_count < last_count:
-                duration = int(time.time() - start_time)
-                if duration is not None:
-                   client.publish('person/duration',
-                                  json.dumps({'duration': duration}))
+            client.publish("person", json.dumps(
+                {"count": current_count, "total_counts": total_count}))
 
-            client.publish("person", json.dumps({"count": current_count}))
-
-            if current_count > 2:
-                alarm_message = "Alert!!! {} people were detected. MAXIMUM ALLOWED IS 2 ".format(
-                    current_count)
-                cv2.putText(frame, alarm_message, (150, 150),
-                            cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
-
-            last_count = current_count
+            client.publish('person/duration',
+                           json.dumps({'duration': duration}))
 
             # Break if escape key pressed
             if key_pressed == 27:
