@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
  Copyright (c) 2018 Intel Corporation.
-
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
  "Software"), to deal in the Software without restriction, including
@@ -9,10 +8,8 @@
  distribute, sublicense, and/or sell copies of the Software, and to
  permit persons to whom the Software is furnished to do so, subject to
  the following conditions:
-
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
-
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -35,7 +32,7 @@ class Network:
     """
 
     def __init__(self):
-        # Initialize any class variables desired 
+        # Initialize any class variables desired
         self.plugin = None
         self.network = None
         self.input_blob = None
@@ -43,7 +40,7 @@ class Network:
         self.exec_network = None
         self.infer_request = None
 
-    def load_model(self, model, device="CPU", cpu_extension=None):
+    def load_model(self, model, request_id, device="CPU", cpu_extension=None):
         # Initialize the plugin
         self.plugin = IECore()
 
@@ -59,13 +56,15 @@ class Network:
         # Read the IR as a IENetwork
         self.network = IENetwork(model=model_xml, weights=model_bin)
 
-
         ### Check for supported layers ###
-        supported_layers = self.plugin.query_network(self.network, device_name="CPU")
-        unsupported_layers = [l for l in self.network.layers.keys() if l not in supported_layers]
+        supported_layers = self.plugin.query_network(
+            self.network, device_name="CPU")
+        unsupported_layers = [
+            l for l in self.network.layers.keys() if l not in supported_layers]
         if len(unsupported_layers) != 0:
             log.error("Unsupported layers found: {}".format(unsupported_layers))
-            log.error("Please use --cpu_extension command line argument to specify a CPU extension library path.")
+            log.error(
+                "Please use --cpu_extension command line argument to specify a CPU extension library path.")
             sys.exit(1)
 
         self.exec_network = self.plugin.load_network(self.network, device)
@@ -82,7 +81,8 @@ class Network:
 
     def exec_net(self, image_frame, request_id):
         ### Start an asynchronous request ###
-        self.exec_network.start_async(request_id, inputs={self.input_blob: image_frame})
+        self.exec_network.start_async(
+            request_id, inputs={self.input_blob: image_frame})
 
         return self.plugin
 
@@ -91,11 +91,10 @@ class Network:
         status = self.exec_network.requests[request_id].wait(-1)
         return status
 
-    def get_output(self, request_id= 0, output=None):
+    def get_output(self, request_id=0, output=None):
         ### Extract and return the output results
         if output:
             out = self.exec_network.outputs[output]
         else:
             out = self.exec_network.requests[request_id].outputs[self.output_blob]
         return out
-
