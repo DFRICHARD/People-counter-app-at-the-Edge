@@ -173,12 +173,10 @@ def infer_on_stream(args, client):
 
             ### Get the results of the inference request ###
             result = infer_network.get_output(request_id)
-            inference_time_message = "Inference time: {:.3f}ms".format(
-                det_time*1000)
+            inference_time_message = "Inference time: {:.3f}ms".format(det_time*1000)
             font = cv2.FONT_HERSHEY_SIMPLEX
             color = (174, 32, 141)
-            cv2.putText(frame, inference_time_message,
-                        (20, 20), font, 0.6, color, 1)
+            cv2.putText(frame, inference_time_message,(20, 20), font, 0.6, color, 1)
 
             ### Extract any desired stats from the results ###
             frame, detected = draw_boxes(frame, result)
@@ -199,16 +197,15 @@ def infer_on_stream(args, client):
                 time_count += 1
                 if time_count >= 10:
                     current_count = counter
-                    if time_count % 10 == 0 and current_count > last_count:
+                    if time_count == 20 and current_count > last_count:
                         total_count += current_count - last_count
-                    elif time_count % 10 == 0 and current_count < last_count:
-                        duration = int((pre_time / 10.0) * 1000)
+                        client.publish("person", json.dumps({"total_counts": total_count}))
+                    elif time_count == 20 and current_count < last_count:
+                        duration = int(pre_time)
+                        client.publish('person/duration', json.dumps({'duration': duration}))
+                
+            client.publish("person", json.dumps({"count": current_count}))
 
-            client.publish("person", json.dumps(
-                {"count": current_count, "total_counts": total_count}))
-
-            client.publish('person/duration',
-                           json.dumps({'duration': duration}))
 
             # Break if escape key pressed
             if key_pressed == 27:
