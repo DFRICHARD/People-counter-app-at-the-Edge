@@ -137,7 +137,8 @@ def infer_on_stream(args, client):
 
     else:
         input_stream = args.input
-        assert os.path.isfile(args.input), "Specified input file doesn't exist"
+        if not os.path.isfile(args.input):
+            raise AssertionError("Specified input file doesn't exist")
 
     # Get and open video capture
     cap = cv2.VideoCapture(input_stream)
